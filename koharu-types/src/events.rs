@@ -35,7 +35,6 @@ impl PipelineStep {
         PipelineStep::Detect,
         PipelineStep::Ocr,
         PipelineStep::Inpaint,
-        PipelineStep::LlmGenerate,
         PipelineStep::Render,
     ];
 }

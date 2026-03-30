@@ -228,12 +228,12 @@ mod tests {
     #[test]
     fn compute_percent_progresses_monotonically() {
         let total_docs = 2;
-        let total_steps = 5;
+        let total_steps = 4;
         let first = compute_percent(0, 0, total_docs, total_steps);
         let middle = compute_percent(0, 3, total_docs, total_steps);
-        let last = compute_percent(1, 4, total_docs, total_steps);
+        let last = compute_percent(1, 3, total_docs, total_steps);
         assert!(first < middle);
         assert!(middle < last);
-        assert_eq!(last, 90);
+        assert_eq!(last, 88);
     }
 }
