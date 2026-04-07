@@ -542,7 +542,6 @@ export const useDocumentMutations = () => {
     async (_?: any, index?: number) => {
       const resolvedIndex =
         index ?? useEditorUiStore.getState().currentDocumentIndex
-      const { selectedModel, selectedLanguage } = useLlmUiStore.getState()
       const { renderEffect, renderStroke } = useEditorUiStore.getState()
       const { fontFamily } = usePreferencesStore.getState()
       const { startOperation, finishOperation } = useOperationStore.getState()
@@ -550,35 +549,11 @@ export const useDocumentMutations = () => {
         type: 'process-current',
         cancellable: true,
         current: 0,
-        total: 5,
+        total: 4,
       })
       try {
-        const models = getCachedLlmModels(queryClient)
-        const modelInfo = models.find((m) => m.id === selectedModel)
-        const language = selectedLanguage
-        const presetCfg = selectedModel
-          ? getPresetConfigForModel(selectedModel)
-          : undefined
-        const llmApiKey = presetCfg
-          ? presetCfg.apiKey || undefined
-          : modelInfo && modelInfo.source !== 'local'
-            ? usePreferencesStore.getState().apiKeys[modelInfo.source]
-            : undefined
-        const llmBaseUrl =
-          modelInfo?.source === 'openai-compatible'
-            ? getBaseUrlForModel(selectedModel!)
-            : undefined
         await api.process({
           index: resolvedIndex,
-          llmModelId: selectedModel
-            ? toBackendModelId(selectedModel)
-            : selectedModel,
-          llmApiKey,
-          llmBaseUrl,
-          llmTemperature: presetCfg?.temperature ?? undefined,
-          llmMaxTokens: presetCfg?.maxTokens ?? undefined,
-          llmCustomSystemPrompt: presetCfg?.customSystemPrompt || undefined,
-          language,
           shaderEffect: renderEffect,
           shaderStroke: renderStroke,
           fontFamily,
@@ -593,7 +568,6 @@ export const useDocumentMutations = () => {
   )
 
   const processAllImages = useCallback(async () => {
-    const { selectedModel, selectedLanguage } = useLlmUiStore.getState()
     const { renderEffect, renderStroke, totalPages } =
       useEditorUiStore.getState()
     const { fontFamily } = usePreferencesStore.getState()
@@ -606,31 +580,7 @@ export const useDocumentMutations = () => {
       total: totalPages,
     })
     try {
-      const models = getCachedLlmModels(queryClient)
-      const modelInfo = models.find((m) => m.id === selectedModel)
-      const language = selectedLanguage
-      const presetCfg2 = selectedModel
-        ? getPresetConfigForModel(selectedModel)
-        : undefined
-      const llmApiKey = presetCfg2
-        ? presetCfg2.apiKey || undefined
-        : modelInfo && modelInfo.source !== 'local'
-          ? usePreferencesStore.getState().apiKeys[modelInfo.source]
-          : undefined
-      const llmBaseUrl =
-        modelInfo?.source === 'openai-compatible'
-          ? getBaseUrlForModel(selectedModel!)
-          : undefined
       await api.process({
-        llmModelId: selectedModel
-          ? toBackendModelId(selectedModel)
-          : selectedModel,
-        llmApiKey,
-        llmBaseUrl,
-        llmTemperature: presetCfg2?.temperature ?? undefined,
-        llmMaxTokens: presetCfg2?.maxTokens ?? undefined,
-        llmCustomSystemPrompt: presetCfg2?.customSystemPrompt || undefined,
-        language,
         shaderEffect: renderEffect,
         shaderStroke: renderStroke,
         fontFamily,

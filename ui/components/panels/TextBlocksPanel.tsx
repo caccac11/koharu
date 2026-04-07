@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { type ChangeEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import { TextBlock } from '@/types'
-import { Languages, LoaderCircleIcon, Trash2Icon } from 'lucide-react'
+import { LoaderCircleIcon, Trash2Icon, UploadIcon } from 'lucide-react'
 import { useTextBlocks } from '@/hooks/useTextBlocks'
-import { useLlmReadyQuery } from '@/lib/query/hooks'
-import { useLlmMutations } from '@/lib/query/mutations'
+import { useTextBlockMutations } from '@/lib/query/mutations'
+import { importTranslations } from '@/lib/importTranslations'
 import {
   Accordion,
   AccordionContent,
@@ -33,10 +33,9 @@ export function TextBlocksPanel() {
     removeBlock,
   } = useTextBlocks()
   const { t } = useTranslation()
-  const { llmGenerate } = useLlmMutations()
-  const { data: llmReady = false } = useLlmReadyQuery()
-  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null)
-  const generating = generatingIndex !== null
+  const { updateTextBlocks } = useTextBlockMutations()
+  const [importing, setImporting] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   if (!document) {
     return (
@@ -49,19 +48,29 @@ export function TextBlocksPanel() {
   const accordionValue =
     selectedBlockIndex !== undefined ? selectedBlockIndex.toString() : ''
 
-  const handleGenerate = async (blockIndex: number) => {
-    setGeneratingIndex(blockIndex)
+  const handleImportTranslations = async () => {
+    const input = inputRef.current
+    if (!input || !textBlocks.length) return
+    input.click()
+  }
+
+  const handleFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setImporting(true)
     try {
-      await llmGenerate(undefined, undefined, blockIndex)
+      const raw = await file.text()
+      const nextBlocks = importTranslations(textBlocks, raw, file.name)
+      await updateTextBlocks(nextBlocks)
     } catch (error) {
       console.error(error)
     } finally {
-      setGeneratingIndex(null)
+      event.target.value = ''
+      setImporting(false)
     }
   }
 
   const handleDelete = async (blockIndex: number) => {
-    if (generating) return
     await removeBlock(blockIndex)
   }
 
@@ -74,6 +83,28 @@ export function TextBlocksPanel() {
         <span data-testid='textblocks-count' data-count={textBlocks.length}>
           {t('textBlocks.title', { count: textBlocks.length })}
         </span>
+        <Button
+          variant='ghost'
+          size='xs'
+          data-testid='textblocks-import-translations'
+          onClick={() => void handleImportTranslations()}
+          disabled={!textBlocks.length || importing}
+          className='h-6 px-2 text-[10px]'
+        >
+          {importing ? (
+            <LoaderCircleIcon className='size-3 animate-spin' />
+          ) : (
+            <UploadIcon className='size-3' />
+          )}
+          Import
+        </Button>
+        <input
+          ref={inputRef}
+          type='file'
+          accept='.txt,.json'
+          className='hidden'
+          onChange={(event) => void handleFileSelected(event)}
+        />
       </div>
       <ScrollArea
         className='min-h-0 flex-1'
@@ -108,10 +139,7 @@ export function TextBlocksPanel() {
                   selected={index === selectedBlockIndex}
                   onChange={(updates) => void replaceBlock(index, updates)}
                   onDelete={() => void handleDelete(index)}
-                  onGenerate={() => void handleGenerate(index)}
-                  generationInFlight={generating}
-                  generating={generatingIndex === index}
-                  llmReady={llmReady}
+                  generationInFlight={false}
                 />
               ))}
             </Accordion>
@@ -128,10 +156,7 @@ type BlockCardProps = {
   selected: boolean
   onChange: (updates: Partial<TextBlock>) => void
   onDelete: () => void | Promise<void>
-  onGenerate: () => void | Promise<void>
   generationInFlight: boolean
-  generating: boolean
-  llmReady: boolean
 }
 
 function BlockCard({
@@ -140,10 +165,7 @@ function BlockCard({
   selected,
   onChange,
   onDelete,
-  onGenerate,
   generationInFlight,
-  generating,
-  llmReady,
 }: BlockCardProps) {
   const { t } = useTranslation()
   const hasOcr = !!block.text?.trim()
@@ -234,27 +256,6 @@ function BlockCard({
                     </TooltipTrigger>
                     <TooltipContent side='left' sideOffset={4}>
                       {t('workspace.deleteBlock')}
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        data-testid={`textblock-generate-${index}`}
-                        variant='ghost'
-                        size='icon-xs'
-                        disabled={!llmReady || generationInFlight}
-                        onClick={onGenerate}
-                        className='size-5'
-                      >
-                        {generating ? (
-                          <LoaderCircleIcon className='size-3 animate-spin' />
-                        ) : (
-                          <Languages className='size-3' />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side='left' sideOffset={4}>
-                      {t('llm.generateTooltip')}
                     </TooltipContent>
                   </Tooltip>
                 </div>

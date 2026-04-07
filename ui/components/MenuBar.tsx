@@ -74,11 +74,6 @@ export function MenuBar() {
       testId: 'menu-file-export',
     },
     {
-      label: t('menu.exportPsd'),
-      onSelect: exportPsdDocument,
-      testId: 'menu-file-export-psd',
-    },
-    {
       label: t('menu.exportAllInpainted'),
       onSelect: exportAllInpainted,
       testId: 'menu-file-export-all-inpainted',
@@ -87,6 +82,11 @@ export function MenuBar() {
       label: t('menu.exportAllRendered'),
       onSelect: exportAllRendered,
       testId: 'menu-file-export-all-rendered',
+    },
+    {
+      label: t('menu.exportPsd'),
+      onSelect: exportPsdDocument,
+      testId: 'menu-file-export-psd',
     },
   ]
 
